@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from src.main import initialize_rag_system, get_rag_response
 from src.file_manager import save_uploaded_file, get_uploaded_files, remove_file, clear_upload_folder
+from langchain.schema import HumanMessage, AIMessage
 
 # Load environment variables
 load_dotenv()
@@ -127,6 +128,7 @@ if st.sidebar.button("Clear All Files"):
 # Initialize session state
 if 'rag_system' not in st.session_state:
     st.session_state.rag_system = initialize_rag_system(os.getenv("GROQ_API_KEY"))
+    st.session_state.messages = []
 
 # Main header
 st.markdown("<h1 class='main-header'>🦙 Llama RAG by razi</h1>", unsafe_allow_html=True)
@@ -143,8 +145,9 @@ if "messages" not in st.session_state:
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(f"<div class='{message['role']}-message'>{message['content']}</div>", unsafe_allow_html=True)
+    role = "user" if isinstance(message, HumanMessage) else "assistant"
+    with st.chat_message(role):
+        st.markdown(f"<div class='{role}-message'>{message.content}</div>", unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -152,18 +155,25 @@ st.markdown("</div>", unsafe_allow_html=True)
 prompt = st.text_input("Ask me anything:", key="user_input")
 if st.button("Send", key="send_button"):
     if prompt:
+        user_message = HumanMessage(content=prompt)
         # Display user message in chat message container
         st.markdown(f"<div class='user-message'>{prompt}</div>", unsafe_allow_html=True)
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        #st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.messages.append(user_message)
 
-        combined_vectorstore, all_sql_databases, llm = st.session_state.rag_system
-        response = get_rag_response(combined_vectorstore, all_sql_databases, prompt, llm)
-
+        #combined_vectorstore, all_sql_databases, llm = st.session_state.rag_system
+        response = get_rag_response(
+            st.session_state.rag_system,
+            prompt,
+            st.session_state.messages
+        )
+        
+        assistant_message = AIMessage(content=response)
+        st.session_state.messages.append(assistant_message)
         # Display assistant response in chat message container
         st.markdown(f"<div class='assistant-message'>{response}</div>", unsafe_allow_html=True)
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        #st.session_state.messages.append({"role": "assistant", "content": response})
 
 # Footer
 st.markdown("""
