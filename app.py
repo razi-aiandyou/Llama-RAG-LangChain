@@ -16,83 +16,139 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS for styling
 st.markdown("""
 <style>
-    /* Dark theme adjustments */
+    /* Global Styling */
     body {
-        color: #E0E0E0;
-        background-color: #0E1117;
-    }
-    
-    /* Header styling */
-    .main-header {
         font-family: 'Roboto', sans-serif;
-        font-size: 3em;
-        font-weight: 700;
+        background-color: #f5f5f5;
+    }
+
+    /* Header */
+    .main-header {
+        text-align: center;
+        font-size: 2em;
         color: #FFD700;
-        text-align: center;
-        margin-bottom: 1em;
-        text-shadow: 2px 2px 4px #000000;
+        margin-top: 20px;
+        margin-bottom: 5px;
     }
-    
-    /* Subheader styling */
+
     .sub-header {
-        font-size: 1.5em;
-        color: #4169E1;
         text-align: center;
-        margin-bottom: 2em;
-    }
-    
-    /* Chat container styling */
-    .chat-container {
-        border: 2px solid #4169E1;
-        border-radius: 10px;
-        padding: 20px;
+        font-size: 1.2em;
+        color: #7f8c8d;
         margin-bottom: 20px;
-        background-color: #1E1E1E;
     }
-    
-    /* User message styling */
+
+    /* Chat Window */
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(70vh - 20px);
+        overflow-y: auto;
+        padding: 10px;
+        border-radius: 10px;
+        margin: 0 auto;
+    }
+
+    .message-bubble {
+        margin: 10px;
+        padding: 15px;
+        border-radius: 10px;
+        max-width: 75%;
+        word-wrap: break-word;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
     .user-message {
-        background-color: #2C3E50;
-        color: #FFFFFF;
-        border-radius: 20px;
-        padding: 10px 15px;
-        margin: 5px 0;
-        max-width: 70%;
         align-self: flex-end;
+        background-color: #3498db;
+        color: white;
+        border-radius: 10px 10px 0 10px;
     }
-    
-    /* Assistant message styling */
+
     .assistant-message {
-        background-color: #34495E;
-        color: #FFFFFF;
-        border-radius: 20px;
-        padding: 10px 15px;
-        margin: 5px 0;
-        max-width: 70%;
         align-self: flex-start;
+        background-color: #2c3e50;
+        color: white;
+        border-radius: 10px 10px 10px 0;
     }
-    
-    /* Input box styling */
-    .stTextInput>div>div>input {
-        background-color: #2C3E50;
-        color: #FFFFFF;
-        border: 1px solid #4169E1;
+
+    /* Input Section */
+    .input-container {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #f5f5f5;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
     }
-    
-    /* Button styling */
-    .stButton>button {
-        background-color: #4169E1;
-        color: #FFFFFF;
+
+    .input-container input[type='text'] {
+        flex: 1;
+        padding: 10px;
+        border-radius: 25px;
+        border: 1px solid #ccc;
+        font-size: 1em;
     }
-    
-    /* Sidebar styling */
-    .css-1d391kg {
+
+    .input-container button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        padding: 8px 20px;
+        font-size: 1em;
+        cursor: pointer;
+    }
+
+    .input-container button:hover {
+        background-color: #2874a6;
+    }
+
+    /* Footer */
+    .footer-container {
+        text-align: center;
+        padding: 10px;
         background-color: #1E1E1E;
+        color: #4169E1;
+        font-size: 0.9em;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .chat-container {
+            margin: 0 10px;
+        }
+
+        .message-bubble {
+            max-width: 90%;
+        }
     }
 </style>
+""", unsafe_allow_html=True)
+
+# JavaScript for Enter key submission
+st.markdown("""
+<script>
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            const button = document.querySelector('button[kind="primary"]');
+            if (button) {
+                button.click();
+            }
+        }
+    });
+</script>
 """, unsafe_allow_html=True)
 
 # Sidebar for file and upload management
@@ -143,41 +199,42 @@ st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat messages from history on app rerun
+# Display chat messages
 for message in st.session_state.messages:
-    role = "user" if isinstance(message, HumanMessage) else "assistant"
-    with st.chat_message(role):
-        st.markdown(f"<div class='{role}-message'>{message.content}</div>", unsafe_allow_html=True)
+    message_type = "user" if isinstance(message, HumanMessage) else "assistant"
+    st.markdown(
+        f"<div class='message-bubble {message_type}-message'>{message.content}</div>",
+        unsafe_allow_html=True
+    )
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# React to user input
-prompt = st.text_input("Ask me anything:", key="user_input")
-if st.button("Send", key="send_button"):
-    if prompt:
-        user_message = HumanMessage(content=prompt)
-        # Display user message in chat message container
-        st.markdown(f"<div class='user-message'>{prompt}</div>", unsafe_allow_html=True)
-        #st.session_state.messages.append({"role": "user", "content": prompt})
-        st.session_state.messages.append(user_message)
+# Fixed input container at the bottom
+st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 
-        #combined_vectorstore, all_sql_databases, llm = st.session_state.rag_system
-        response = get_rag_response(
-            st.session_state.rag_system,
-            prompt,
-            st.session_state.messages
-        )
-        
-        assistant_message = AIMessage(content=response)
-        st.session_state.messages.append(assistant_message)
-        # Display assistant response in chat message container
-        st.markdown(f"<div class='assistant-message'>{response}</div>", unsafe_allow_html=True)
-        # Add assistant response to chat history
-        #st.session_state.messages.append({"role": "assistant", "content": response})
+# Input container
+st.markdown("<div class='input-container'>", unsafe_allow_html=True)
+prompt = st.text_input("", placeholder="Type your message...", key="user_input")
+send_button = st.button("Send", key="send_button")
+st.markdown("</div>", unsafe_allow_html=True)
+
+if send_button and prompt:
+    user_message = HumanMessage(content=prompt)
+    st.session_state.messages.append(user_message)
+    
+    response = get_rag_response(
+        st.session_state.rag_system,
+        prompt,
+        st.session_state.messages
+    )
+    
+    assistant_message = AIMessage(content=response)
+    st.session_state.messages.append(assistant_message)
+    st.rerun()
 
 # Footer
 st.markdown("""
-<div style='position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding: 10px; background-color: #1E1E1E;'>
-    <p style='color: #4169E1;'>Powered by LangChain and Groq | Developed by razi</p>
+<div class='footer-container'>
+    <p>Powered by LangChain and Groq | Developed by Razi</p>
 </div>
 """, unsafe_allow_html=True)

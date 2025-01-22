@@ -1,9 +1,9 @@
 from typing import TypedDict, List, Union, Dict, Any
 from langgraph.graph import StateGraph, END
-from langchain.schema import BaseMessage, AIMessage, HumanMessage
+from langchain.schema import AIMessage, HumanMessage
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.prompts import ChatPromptTemplate
+from langchain.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_community.agent_toolkits import create_sql_agent
 
 class AgentState(TypedDict):
@@ -32,11 +32,17 @@ def create_vectorstore_chain(vectorstore, llm):
     return create_retrieval_chain(retriever, document_chain)
 
 def create_sql_chain(db, llm):
+    base_prompt = PromptTemplate(
+        input_variables=["messages"],
+        template="While answering the user query, take into consideration the conversation transcript to provide a more coherent response. Ensure you also provide an informative response to the user.\n\nConversation Transcript\n\n{messages}"
+    )
+
     return create_sql_agent(
         llm=llm,
         db=db,
         agent_type='openai-tools',
-        verbose=True
+        verbose=True,
+        prompt=base_prompt
     )
 
 def process_with_vectorstore(
